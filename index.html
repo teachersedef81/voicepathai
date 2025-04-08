@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Görme Engelliler İçin Sesli Eğitim Asistanı</title>
+</head>
+<body>
+    <h1>📖 Görme Engelliler İçin Sesli Eğitim Asistanı</h1>
+    
+    <div class="upload-container">
+        <h2>1. PDF Dosyası Yükle</h2>
+        <input type="file" id="pdfFile" accept=".pdf" />
+        <button id="convertBtn" disabled>PDF'i Sese Dönüştür</button>
+    </div>
+
+    <div id="playerSection" class="hidden">
+        <h2>2. Dinle</h2>
+        <audio id="audioPlayer" controls></audio>
+        <div>
+            <button id="playBtn">Oynat</button>
+            <button id="pauseBtn">Duraklat</button>
+            <button id="stopBtn">Durdur</button>
+        </div>
+    </div>
+
+    <script>
+        // JavaScript kısmı aşağıda
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const pdfFileInput = document.getElementById('pdfFile');
+            const convertBtn = document.getElementById('convertBtn');
+            const audioPlayer = document.getElementById('audioPlayer');
+            const playerSection = document.getElementById('playerSection');
+            const playBtn = document.getElementById('playBtn');
+            const pauseBtn = document.getElementById('pauseBtn');
+            const stopBtn = document.getElementById('stopBtn');
+    
+            // PDF seçildiğinde butonu aktif et
+            pdfFileInput.addEventListener('change', () => {
+                convertBtn.disabled = !pdfFileInput.files.length;
+            });
+    
+            // Dönüştür butonu
+            convertBtn.addEventListener('click', async () => {
+                if (!pdfFileInput.files.length) return;
+    
+                const file = pdfFileInput.files[0];
+                const reader = new FileReader();
+    
+                reader.onload = async (e) => {
+                    // NOT: Gerçekte PDF'den metin çıkarmak için backend gerekir (Örn: Python + PyPDF2).
+                    // Bu örnekte demo amaçlı sabit bir metin kullanıyoruz.
+                    const demoText = "Bu bir demo metindir. Gerçek uygulamada PDF'in içeriği okunacaktır.";
+    
+                    // Metni sese dönüştür (Tarayıcı TTS API'si)
+                    if ('speechSynthesis' in window) {
+                        playerSection.classList.remove('hidden');
+                        
+                        // Tarayıcı TTS ile okuma
+                        const utterance = new SpeechSynthesisUtterance(demoText);
+                        utterance.lang = 'tr-TR'; // Türkçe için
+                        
+                        // Buton eventleri
+                        playBtn.addEventListener('click', () => {
+                            window.speechSynthesis.speak(utterance);
+                        });
+                        
+                        pauseBtn.addEventListener('click', () => {
+                            window.speechSynthesis.pause();
+                        });
+                        
+                        stopBtn.addEventListener('click', () => {
+                            window.speechSynthesis.cancel();
+                        });
+                    } else {
+                        alert("Tarayıcınız metin okuma desteği sağlamıyor.");
+                    }
+                };
+    
+                reader.readAsArrayBuffer(file);
+            });
+        });
+    </script>
+</body>
+</html>
