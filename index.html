@@ -1,85 +1,870 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Görme Engelliler İçin Sesli Eğitim Asistanı</title>
+    <title>VoicePathAI - Accessible Voice Assistant for Visually Impaired Users</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8fafc;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+        }
+        
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+        
+        [aria-live="polite"] {
+            position: absolute;
+            left: -10000px;
+            top: auto;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+        
+        .focusable:focus {
+            outline: 3px solid #a777e3;
+            outline-offset: 2px;
+        }
+        
+        /* Voice command indicator */
+        .listening-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background-color: #6e8efb;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 50px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(110, 142, 251, 0.7);
+            }
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 15px rgba(110, 142, 251, 0);
+            }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(110, 142, 251, 0);
+            }
+        }
+    </style>
 </head>
 <body>
-    <h1>📖 Görme Engelliler İçin Sesli Eğitim Asistanı</h1>
+    <!-- ARIA Live Region for screen reader announcements -->
+    <div id="aria-live-region" aria-live="polite" aria-atomic="true"></div>
     
-    <div class="upload-container">
-        <h2>1. PDF Dosyası Yükle</h2>
-        <input type="file" id="pdfFile" accept=".pdf" />
-        <button id="convertBtn" disabled>PDF'i Sese Dönüştür</button>
-    </div>
-
-    <div id="playerSection" class="hidden">
-        <h2>2. Dinle</h2>
-        <audio id="audioPlayer" controls></audio>
-        <div>
-            <button id="playBtn">Oynat</button>
-            <button id="pauseBtn">Duraklat</button>
-            <button id="stopBtn">Durdur</button>
+    <!-- Skip to Content Link -->
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-0 focus:left-0 focus:bg-white focus:px-4 focus:py-2 focus:text-purple-600 focus:z-50">
+        Skip to main content
+    </a>
+    
+    <!-- Header/Navigation -->
+    <header class="gradient-bg text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-microphone-alt text-2xl" aria-hidden="true"></i>
+                    <h1 class="text-2xl font-bold">VoicePath<span class="font-light">AI</span></h1>
+                </div>
+                <nav class="hidden md:flex space-x-8" aria-label="Main navigation">
+                    <a href="#features" class="hover:text-gray-200 transition focusable">Features</a>
+                    <a href="#how-it-works" class="hover:text-gray-200 transition focusable">How It Works</a>
+                    <a href="#pricing" class="hover:text-gray-200 transition focusable">Pricing</a>
+                    <a href="#contact" class="hover:text-gray-200 transition focusable">Contact</a>
+                </nav>
+                <div class="flex items-center space-x-4">
+                    <button class="px-4 py-2 rounded-full bg-white text-purple-600 font-medium hover:bg-gray-100 transition focusable" 
+                            aria-label="Login to your account">
+                        Login
+                    </button>
+                    <button class="md:hidden text-2xl focusable" id="mobile-menu-button" aria-label="Open menu" aria-expanded="false">
+                        <i class="fas fa-bars" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Mobile Menu -->
+            <div class="md:hidden hidden mt-4 pb-2" id="mobile-menu" aria-hidden="true">
+                <div class="flex flex-col space-y-3" role="menu">
+                    <a href="#features" class="block py-2 hover:bg-white hover:bg-opacity-10 rounded px-2 focusable" role="menuitem">Features</a>
+                    <a href="#how-it-works" class="block py-2 hover:bg-white hover:bg-opacity-10 rounded px-2 focusable" role="menuitem">How It Works</a>
+                    <a href="#pricing" class="block py-2 hover:bg-white hover:bg-opacity-10 rounded px-2 focusable" role="menuitem">Pricing</a>
+                    <a href="#contact" class="block py-2 hover:bg-white hover:bg-opacity-10 rounded px-2 focusable" role="menuitem">Contact</a>
+                </div>
+            </div>
         </div>
+    </header>
+
+    <!-- Hero Section -->
+    <main id="main-content">
+        <section class="gradient-bg text-white relative overflow-hidden">
+            <div class="container mx-auto px-4 py-20 md:py-32 relative z-10">
+                <div class="flex flex-col md:flex-row items-center">
+                    <div class="md:w-1/2 mb-12 md:mb-0">
+                        <h1 class="text-4xl md:text-5xl font-bold mb-6">Your Accessible AI Voice Assistant</h1>
+                        <p class="text-xl mb-8 text-gray-100">Designed specifically for visually impaired users, VoicePathAI provides complete control through voice commands and natural speech.</p>
+                        <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                            <button id="start-listening" class="px-8 py-3 bg-white text-purple-600 rounded-full font-bold hover:bg-gray-100 transition focusable flex items-center justify-center"
+                                    aria-label="Start voice commands, press to activate">
+                                <i class="fas fa-microphone mr-2" aria-hidden="true"></i> Activate Voice
+                            </button>
+                            <button class="px-8 py-3 border-2 border-white text-white rounded-full font-bold hover:bg-white hover:bg-opacity-10 transition focusable"
+                                    aria-label="Get started with VoicePathAI">
+                                Get Started
+                            </button>
+                        </div>
+                    </div>
+                    <div class="md:w-1/2 flex justify-center" aria-hidden="true">
+                        <div class="relative">
+                            <div class="w-64 h-64 md:w-80 md:h-80 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                                <div class="w-56 h-56 md:w-72 md:h-72 bg-white bg-opacity-30 rounded-full flex items-center justify-center">
+                                    <div class="w-48 h-48 md:w-64 md:h-64 bg-white rounded-full flex items-center justify-center shadow-xl">
+                                        <i class="fas fa-microphone-alt text-5xl md:text-7xl text-purple-600" aria-hidden="true"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Voice Command Guide -->
+        <section class="py-12 bg-white">
+            <div class="container mx-auto px-4">
+                <h2 class="text-3xl font-bold text-center mb-8">Voice Command Guide</h2>
+                <div class="max-w-4xl mx-auto bg-gray-50 p-8 rounded-lg">
+                    <p class="mb-6">VoicePathAI understands natural language commands. Here are some examples to get started:</p>
+                    <ul class="space-y-4">
+                        <li class="flex items-start">
+                            <span class="bg-purple-100 text-purple-800 rounded-full w-8 h-8 flex items-center justify-center mr-4 font-bold">1</span>
+                            <div>
+                                <strong>"Go to features section"</strong> - Navigates to the features section
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="bg-purple-100 text-purple-800 rounded-full w-8 h-8 flex items-center justify-center mr-4 font-bold">2</span>
+                            <div>
+                                <strong>"Read the current section"</strong> - Reads all text in the current section
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="bg-purple-100 text-purple-800 rounded-full w-8 h-8 flex items-center justify-center mr-4 font-bold">3</span>
+                            <div>
+                                <strong>"Scroll down"</strong> - Scrolls down the page
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="bg-purple-100 text-purple-800 rounded-full w-8 h-8 flex items-center justify-center mr-4 font-bold">4</span>
+                            <div>
+                                <strong>"Stop reading"</strong> - Stops the current speech output
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="bg-purple-100 text-purple-800 rounded-full w-8 h-8 flex items-center justify-center mr-4 font-bold">5</span>
+                            <div>
+                                <strong>"Help"</strong> - Repeats these voice command options
+                            </div>
+                        </li>
+                    </ul>
+                    <div class="mt-8 p-4 bg-purple-50 rounded-lg">
+                        <p><strong>Tip:</strong> Say "What can I say?" at any time to hear available commands.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features" class="py-20 bg-gray-50">
+            <div class="container mx-auto px-4">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Accessibility Features</h2>
+                    <p class="text-xl text-gray-600 max-w-3xl mx-auto">Designed specifically for visually impaired users</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="bg-white p-8 rounded-xl hover:shadow-lg transition focusable" tabindex="0">
+                        <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-6">
+                            <i class="fas fa-volume-up text-2xl text-purple-600" aria-hidden="true"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-3">Screen Reader Integration</h3>
+                        <p class="text-gray-600">Seamless compatibility with all major screen readers including JAWS, NVDA, and VoiceOver.</p>
+                    </div>
+                    
+                    <div class="bg-white p-8 rounded-xl hover:shadow-lg transition focusable" tabindex="0">
+                        <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-6">
+                            <i class="fas fa-american-sign-language-interpreting text-2xl text-purple-600" aria-hidden="true"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-3">Natural Voice Commands</h3>
+                        <p class="text-gray-600">Control the entire interface using natural language voice commands without needing to memorize specific phrases.</p>
+                    </div>
+                    
+                    <div class="bg-white p-8 rounded-xl hover:shadow-lg transition focusable" tabindex="0">
+                        <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-6">
+                            <i class="fas fa-brain text-2xl text-purple-600" aria-hidden="true"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-3">Contextual Understanding</h3>
+                        <p class="text-gray-600">Advanced AI understands context so you can speak naturally without rigid command structures.</p>
+                    </div>
+                    
+                    <div class="bg-white p-8 rounded-xl hover:shadow-lg transition focusable" tabindex="0">
+                        <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-6">
+                            <i class="fas fa-text-height text-2xl text-purple-600" aria-hidden="true"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-3">Text-to-Speech Control</h3>
+                        <p class="text-gray-600">Full control over speech rate, volume, and voice preferences to match your needs.</p>
+                    </div>
+                    
+                    <div class="bg-white p-8 rounded-xl hover:shadow-lg transition focusable" tabindex="0">
+                        <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-6">
+                            <i class="fas fa-keyboard text-2xl text-purple-600" aria-hidden="true"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-3">Keyboard Navigation</h3>
+                        <p class="text-gray-600">Complete keyboard accessibility with logical tab order and ARIA landmarks.</p>
+                    </div>
+                    
+                    <div class="bg-white p-8 rounded-xl hover:shadow-lg transition focusable" tabindex="0">
+                        <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-6">
+                            <i class="fas fa-cog text-2xl text-purple-600" aria-hidden="true"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-3">Customizable Interface</h3>
+                        <p class="text-gray-600">Adjust contrast, text size, and other visual elements for low-vision users.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- How It Works Section -->
+        <section id="how-it-works" class="py-20 bg-white">
+            <div class="container mx-auto px-4">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">How It Works</h2>
+                    <p class="text-xl text-gray-600 max-w-3xl mx-auto">Simple steps to start using VoicePathAI</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="bg-gray-50 p-8 rounded-xl focusable" tabindex="0">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 bg-purple-600 text-white rounded-full flex items-center justify-center mr-4">
+                                <span class="font-bold">1</span>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-800">Activate Voice</h3>
+                        </div>
+                        <p class="text-gray-600">Press the microphone button or say "Hey VoicePath" to activate voice commands.</p>
+                    </div>
+                    
+                    <div class="bg-gray-50 p-8 rounded-xl focusable" tabindex="0">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 bg-purple-600 text-white rounded-full flex items-center justify-center mr-4">
+                                <span class="font-bold">2</span>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-800">Speak Naturally</h3>
+                        </div>
+                        <p class="text-gray-600">Give commands or ask questions in your natural speaking voice.</p>
+                    </div>
+                    
+                    <div class="bg-gray-50 p-8 rounded-xl focusable" tabindex="0">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 bg-purple-600 text-white rounded-full flex items-center justify-center mr-4">
+                                <span class="font-bold">3</span>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-800">Get Results</h3>
+                        </div>
+                        <p class="text-gray-600">VoicePathAI will respond verbally and navigate the interface for you.</p>
+                    </div>
+                </div>
+                
+                <div class="mt-16 bg-purple-50 p-8 rounded-xl">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Try It Now</h3>
+                    <p class="mb-6">Press the button below and say one of these commands:</p>
+                    <ul class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <li class="flex items-start">
+                            <span class="bg-purple-100 text-purple-800 rounded-full w-6 h-6 flex items-center justify-center mr-3 mt-1 text-sm font-bold">1</span>
+                            <span>"Read the features"</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="bg-purple-100 text-purple-800 rounded-full w-6 h-6 flex items-center justify-center mr-3 mt-1 text-sm font-bold">2</span>
+                            <span>"Go to pricing"</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="bg-purple-100 text-purple-800 rounded-full w-6 h-6 flex items-center justify-center mr-3 mt-1 text-sm font-bold">3</span>
+                            <span>"What can I say?"</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="bg-purple-100 text-purple-800 rounded-full w-6 h-6 flex items-center justify-center mr-3 mt-1 text-sm font-bold">4</span>
+                            <span>"Scroll down"</span>
+                        </li>
+                    </ul>
+                    <button id="try-now" class="px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition focusable">
+                        <i class="fas fa-microphone mr-2" aria-hidden="true"></i> Try Voice Command
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pricing Section -->
+        <section id="pricing" class="py-20 bg-gray-50">
+            <div class="container mx-auto px-4">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Accessible Pricing</h2>
+                    <p class="text-xl text-gray-600 max-w-3xl mx-auto">Plans designed for individual needs</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                    <div class="bg-white p-8 rounded-xl border border-gray-200 hover:border-purple-500 transition focusable" tabindex="0">
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">Basic</h3>
+                        <p class="text-gray-600 mb-6">For individual users</p>
+                        <div class="mb-6">
+                            <span class="text-4xl font-bold text-gray-800">$0</span>
+                            <span class="text-gray-600">/month</span>
+                        </div>
+                        <ul class="space-y-3 mb-8">
+                            <li class="flex items-center">
+                                <i class="fas fa-check text-green-500 mr-2" aria-hidden="true"></i>
+                                <span>Basic voice commands</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check text-green-500 mr-2" aria-hidden="true"></i>
+                                <span>Screen reader integration</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check text-green-500 mr-2" aria-hidden="true"></i>
+                                <span>Community support</span>
+                            </li>
+                        </ul>
+                        <button class="w-full py-3 border-2 border-purple-600 text-purple-600 rounded-lg font-bold hover:bg-purple-600 hover:text-white transition focusable"
+                                aria-label="Get started with Basic plan">
+                            Get Started
+                        </button>
+                    </div>
+                    
+                    <div class="bg-gradient-to-b from-purple-600 to-purple-500 p-8 rounded-xl text-white transform scale-105 shadow-lg focusable" tabindex="0">
+                        <div class="absolute top-0 right-0 bg-yellow-400 text-purple-800 px-4 py-1 rounded-bl-lg rounded-tr-lg font-bold">BEST VALUE</div>
+                        <h3 class="text-xl font-bold mb-2">Premium</h3>
+                        <p class="text-purple-100 mb-6">For regular users</p>
+                        <div class="mb-6">
+                            <span class="text-4xl font-bold">$9</span>
+                            <span class="text-purple-200">/month</span>
+                        </div>
+                        <ul class="space-y-3 mb-8">
+                            <li class="flex items-center">
+                                <i class="fas fa-check text-yellow-300 mr-2" aria-hidden="true"></i>
+                                <span>Advanced voice commands</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check text-yellow-300 mr-2" aria-hidden="true"></i>
+                                <span>Custom voice shortcuts</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check text-yellow-300 mr-2" aria-hidden="true"></i>
+                                <span>Priority support</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check text-yellow-300 mr-2" aria-hidden="true"></i>
+                                <span>Offline mode</span>
+                            </li>
+                        </ul>
+                        <button class="w-full py-3 bg-white text-purple-600 rounded-lg font-bold hover:bg-gray-100 transition focusable"
+                                aria-label="Get started with Premium plan">
+                            Get Started
+                        </button>
+                    </div>
+                    
+                    <div class="bg-white p-8 rounded-xl border border-gray-200 hover:border-purple-500 transition focusable" tabindex="0">
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">Enterprise</h3>
+                        <p class="text-gray-600 mb-6">For organizations</p>
+                        <div class="mb-6">
+                            <span class="text-4xl font-bold text-gray-800">$29</span>
+                            <span class="text-gray-600">/month</span>
+                        </div>
+                        <ul class="space-y-3 mb-8">
+                            <li class="flex items-center">
+                                <i class="fas fa-check text-green-500 mr-2" aria-hidden="true"></i>
+                                <span>All Premium features</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check text-green-500 mr-2" aria-hidden="true"></i>
+                                <span>Multiple user accounts</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check text-green-500 mr-2" aria-hidden="true"></i>
+                                <span>Custom integrations</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check text-green-500 mr-2" aria-hidden="true"></i>
+                                <span>Dedicated support</span>
+                            </li>
+                        </ul>
+                        <button class="w-full py-3 border-2 border-purple-600 text-purple-600 rounded-lg font-bold hover:bg-purple-600 hover:text-white transition focusable"
+                                aria-label="Get started with Enterprise plan">
+                            Get Started
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mt-12 text-center">
+                    <p class="text-gray-600">Need a custom solution? <a href="#contact" class="text-purple-600 font-medium hover:underline focusable">Contact our accessibility team</a></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Testimonials Section -->
+        <section class="py-20 bg-white">
+            <div class="container mx-auto px-4">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">User Experiences</h2>
+                    <p class="text-xl text-gray-600 max-w-3xl mx-auto">What our visually impaired users say about VoicePathAI</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="bg-gray-50 p-8 rounded-xl shadow-md focusable" tabindex="0">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 rounded-full overflow-hidden mr-4">
+                                <img src="https://randomuser.me/api/portraits/women/43.jpg" alt="Sarah Johnson" class="w-full h-full object-cover">
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-gray-800">Sarah Johnson</h4>
+                                <p class="text-gray-500 text-sm">Completely blind since birth</p>
+                            </div>
+                        </div>
+                        <p class="text-gray-600 mb-4">"VoicePathAI has given me independence I never thought possible with technology. I can navigate complex websites with just my voice, something no other tool has offered me before."</p>
+                        <div class="flex text-yellow-400">
+                            <i class="fas fa-star" aria-hidden="true"></i>
+                            <i class="fas fa-star" aria-hidden="true"></i>
+                            <i class="fas fa-star" aria-hidden="true"></i>
+                            <i class="fas fa-star" aria-hidden="true"></i>
+                            <i class="fas fa-star" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-50 p-8 rounded-xl shadow-md focusable" tabindex="0">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 rounded-full overflow-hidden mr-4">
+                                <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Michael Chen" class="w-full h-full object-cover">
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-gray-800">Michael Chen</h4>
+                                <p class="text-gray-500 text-sm">Low vision user</p>
+                            </div>
+                        </div>
+                        <p class="text-gray-600 mb-4">"As someone with limited vision, I struggle with most interfaces. VoicePathAI understands my natural speech patterns and responds accurately every time. It's like having a personal assistant."</p>
+                        <div class="flex text-yellow-400">
+                            <i class="fas fa-star" aria-hidden="true"></i>
+                            <i class="fas fa-star" aria-hidden="true"></i>
+                            <i class="fas fa-star" aria-hidden="true"></i>
+                            <i class="fas fa-star" aria-hidden="true"></i>
+                            <i class="fas fa-star-half-alt" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-50 p-8 rounded-xl shadow-md focusable" tabindex="0">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 rounded-full overflow-hidden mr-4">
+                                <img src="https://randomuser.me/api/portraits/women/65.jpg" alt="Emily Rodriguez" class="w-full h-full object-cover">
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-gray-800">Emily Rodriguez</h4>
+                                <p class="text-gray-500 text-sm">Accessibility advocate</p>
+                            </div>
+                        </div>
+                        <p class="text-gray-600 mb-4">"I've tested dozens of accessibility tools, and VoicePathAI stands out for its natural language understanding. It doesn't just follow commands—it understands intent, which makes all the difference."</p>
+                        <div class="flex text-yellow-400">
+                            <i class="fas fa-star" aria-hidden="true"></i>
+                            <i class="fas fa-star" aria-hidden="true"></i>
+                            <i class="fas fa-star" aria-hidden="true"></i>
+                            <i class="fas fa-star" aria-hidden="true"></i>
+                            <i class="fas fa-star" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="py-20 gradient-bg text-white">
+            <div class="container mx-auto px-4 text-center">
+                <h2 class="text-3xl md:text-4xl font-bold mb-6">Experience VoicePathAI Today</h2>
+                <p class="text-xl mb-8 max-w-3xl mx-auto">Join our community of visually impaired users who have transformed their digital experience.</p>
+                <div class="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+                    <button class="px-8 py-3 bg-white text-purple-600 rounded-full font-bold hover:bg-gray-100 transition focusable"
+                            aria-label="Start your free trial of VoicePathAI">
+                        Start Free Trial
+                    </button>
+                    <button class="px-8 py-3 border-2 border-white text-white rounded-full font-bold hover:bg-white hover:bg-opacity-10 transition focusable"
+                            aria-label="Schedule a demo of VoicePathAI">
+                        Schedule Demo
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact Section -->
+        <section id="contact" class="py-20 bg-white">
+            <div class="container mx-auto px-4">
+                <div class="flex flex-col md:flex-row">
+                    <div class="md:w-1/2 mb-12 md:mb-0 md:pr-12">
+                        <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Accessibility Support</h2>
+                        <p class="text-gray-600 mb-8">Our team specializes in supporting visually impaired users. Contact us for personalized assistance.</p>
+                        
+                        <div class="space-y-6">
+                            <div class="flex items-start">
+                                <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mr-4">
+                                    <i class="fas fa-envelope text-purple-600" aria-hidden="true"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-gray-800 mb-1">Email Us</h4>
+                                    <p class="text-gray-600">accessibility@voicepathai.com</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-start">
+                                <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mr-4">
+                                    <i class="fas fa-phone-alt text-purple-600" aria-hidden="true"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-gray-800 mb-1">Accessibility Hotline</h4>
+                                    <p class="text-gray-600">+1 (555) 987-6543</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-start">
+                                <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mr-4">
+                                    <i class="fas fa-comments text-purple-600" aria-hidden="true"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-gray-800 mb-1">Live Chat</h4>
+                                    <p class="text-gray-600">Available 24/7 with screen reader support</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="md:w-1/2">
+                        <div class="bg-gray-50 p-8 rounded-xl shadow-md">
+                            <h3 class="text-xl font-bold text-gray-800 mb-6">Accessibility Feedback Form</h3>
+                            <form>
+                                <div class="mb-4">
+                                    <label for="name" class="block text-gray-700 font-medium mb-2">Name</label>
+                                    <input type="text" id="name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focusable">
+                                </div>
+                                <div class="mb-4">
+                                    <label for="email" class="block text-gray-700 font-medium mb-2">Email</label>
+                                    <input type="email" id="email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focusable">
+                                </div>
+                                <div class="mb-4">
+                                    <label for="accessibility-needs" class="block text-gray-700 font-medium mb-2">Accessibility Needs</label>
+                                    <select id="accessibility-needs" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focusable">
+                                        <option value="">Select your needs</option>
+                                        <option value="blind">Totally blind</option>
+                                        <option value="low-vision">Low vision</option>
+                                        <option value="other">Other disability</option>
+                                        <option value="caregiver">Caregiver/assistant</option>
+                                    </select>
+                                </div>
+                                <div class="mb-6">
+                                    <label for="message" class="block text-gray-700 font-medium mb-2">Feedback</label>
+                                    <textarea id="message" rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focusable"></textarea>
+                                </div>
+                                <button type="submit" class="w-full py-3 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700 transition focusable"
+                                        aria-label="Submit your accessibility feedback">
+                                    Submit Feedback
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <i class="fas fa-microphone-alt text-2xl" aria-hidden="true"></i>
+                        <h3 class="text-2xl font-bold">VoicePath<span class="font-light">AI</span></h3>
+                    </div>
+                    <p class="text-gray-400">The most accessible AI voice assistant for visually impaired users.</p>
+                    <div class="flex space-x-4 mt-6">
+                        <a href="#" class="text-gray-400 hover:text-white transition focusable" aria-label="Follow us on Twitter"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white transition focusable" aria-label="Follow us on Facebook"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white transition focusable" aria-label="Connect with us on LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white transition focusable" aria-label="Follow us on Instagram"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Accessibility</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white transition focusable">Screen Reader Guide</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition focusable">Voice Command Reference</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition focusable">Keyboard Shortcuts</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition focusable">Accessibility Statement</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Resources</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white transition focusable">Tutorial Videos</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition focusable">User Guides</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition focusable">Accessibility Blog</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition focusable">Community Forum</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Company</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white transition focusable">About Us</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition focusable">Accessibility Team</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition focusable">Privacy Policy</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition focusable">Contact Us</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="pt-8 border-t border-gray-800 text-center text-gray-400">
+                <p>&copy; 2023 VoicePathAI. All rights reserved. Designed with accessibility in mind.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Listening Indicator -->
+    <div id="listening-indicator" class="listening-indicator hidden">
+        <i class="fas fa-microphone mr-2" aria-hidden="true"></i>
+        <span>Listening...</span>
     </div>
 
     <script>
-        // JavaScript kısmı aşağıda
-    </script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const pdfFileInput = document.getElementById('pdfFile');
-            const convertBtn = document.getElementById('convertBtn');
-            const audioPlayer = document.getElementById('audioPlayer');
-            const playerSection = document.getElementById('playerSection');
-            const playBtn = document.getElementById('playBtn');
-            const pauseBtn = document.getElementById('pauseBtn');
-            const stopBtn = document.getElementById('stopBtn');
-    
-            // PDF seçildiğinde butonu aktif et
-            pdfFileInput.addEventListener('change', () => {
-                convertBtn.disabled = !pdfFileInput.files.length;
+        // Mobile menu toggle
+        document.getElementById('mobile-menu-button').addEventListener('click', function() {
+            const menu = document.getElementById('mobile-menu');
+            const isExpanded = this.getAttribute('aria-expanded') === 'true';
+            
+            menu.classList.toggle('hidden');
+            menu.setAttribute('aria-hidden', isExpanded);
+            this.setAttribute('aria-expanded', !isExpanded);
+            
+            // Announce menu state to screen readers
+            const liveRegion = document.getElementById('aria-live-region');
+            liveRegion.textContent = isExpanded ? 'Menu closed' : 'Menu opened';
+        });
+
+        // Voice command functionality
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition;
+        
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+            
+            recognition.onstart = function() {
+                document.getElementById('listening-indicator').classList.remove('hidden');
+                speakFeedback("I'm listening. What would you like me to do?");
+            };
+            
+            recognition.onerror = function(event) {
+                console.error('Speech recognition error', event.error);
+                document.getElementById('listening-indicator').classList.add('hidden');
+                speakFeedback("Sorry, I didn't catch that. Please try again.");
+            };
+            
+            recognition.onend = function() {
+                document.getElementById('listening-indicator').classList.add('hidden');
+            };
+            
+            recognition.onresult = function(event) {
+                const last = event.results.length - 1;
+                const transcript = event.results[last][0].transcript.trim().toLowerCase();
+                
+                if (event.results[last].isFinal) {
+                    processVoiceCommand(transcript);
+                }
+            };
+        }
+        
+        function processVoiceCommand(command) {
+            const liveRegion = document.getElementById('aria-live-region');
+            
+            // Basic navigation commands
+            if (command.includes('go to') || command.includes('navigate to')) {
+                if (command.includes('feature') || command.includes('features')) {
+                    window.location.hash = '#features';
+                    speakFeedback("Navigating to features section.");
+                } 
+                else if (command.includes('pricing')) {
+                    window.location.hash = '#pricing';
+                    speakFeedback("Navigating to pricing section.");
+                }
+                else if (command.includes('contact') || command.includes('help')) {
+                    window.location.hash = '#contact';
+                    speakFeedback("Navigating to contact section.");
+                }
+                else if (command.includes('how it works') || command.includes('works')) {
+                    window.location.hash = '#how-it-works';
+                    speakFeedback("Navigating to how it works section.");
+                }
+                else if (command.includes('home') || command.includes('top')) {
+                    window.scrollTo(0, 0);
+                    speakFeedback("Returning to top of page.");
+                }
+            }
+            // Reading commands
+            else if (command.includes('read') || command.includes('speak')) {
+                if (command.includes('current') || command.includes('this')) {
+                    const currentSection = document.querySelector(':target') || document.querySelector('main');
+                    const text = currentSection.textContent.replace(/\s+/g, ' ').trim();
+                    speakFeedback(text.substring(0, 300) + "..."); // Limit to 300 chars for demo
+                }
+                else if (command.includes('feature') || command.includes('features')) {
+                    const section = document.getElementById('features');
+                    const text = section.textContent.replace(/\s+/g, ' ').trim();
+                    speakFeedback(text.substring(0, 300) + "...");
+                }
+            }
+            // Scrolling commands
+            else if (command.includes('scroll')) {
+                if (command.includes('down')) {
+                    window.scrollBy(0, 300);
+                    speakFeedback("Scrolled down.");
+                }
+                else if (command.includes('up')) {
+                    window.scrollBy(0, -300);
+                    speakFeedback("Scrolled up.");
+                }
+            }
+            // Help commands
+            else if (command.includes('help') || command.includes('what can i say') || command.includes('commands')) {
+                const commands = [
+                    "Here are some commands you can try:",
+                    "Say 'Go to features' to navigate to the features section.",
+                    "Say 'Read this section' to hear the current content.",
+                    "Say 'Scroll down' or 'Scroll up' to move through the page.",
+                    "Say 'Stop reading' to pause the speech.",
+                    "Say 'Help' to hear these options again."
+                ].join(' ');
+                speakFeedback(commands);
+            }
+            // Stop command
+            else if (command.includes('stop') || command.includes('pause')) {
+                if (window.speechSynthesis.speaking) {
+                    window.speechSynthesis.cancel();
+                    speakFeedback("Stopped reading.");
+                }
+            }
+            // Start listening command
+            else if (command.includes('start listening') || command.includes('activate voice')) {
+                startListening();
+            }
+            // Default response
+            else {
+                speakFeedback("I heard: " + command + ". For a list of commands, say 'Help'.");
+            }
+        }
+        
+        function speakFeedback(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 1.0;
+                window.speechSynthesis.speak(utterance);
+                
+                // Also update live region for screen readers
+                const liveRegion = document.getElementById('aria-live-region');
+                liveRegion.textContent = text;
+            } else {
+                alert("Text-to-speech not supported in this browser. Message: " + text);
+            }
+        }
+        
+        function startListening() {
+            if (recognition) {
+                recognition.start();
+            } else {
+                speakFeedback("Voice recognition is not supported in your browser. Please try Chrome or Edge.");
+            }
+        }
+        
+        // Set up event listeners for voice command buttons
+        document.getElementById('start-listening').addEventListener('click', startListening);
+        document.getElementById('try-now').addEventListener('click', startListening);
+        
+        // Initialize page with welcome message
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                speakFeedback("Welcome to VoicePathAI, the accessible voice assistant. Say 'Help' to learn available commands, or press the Activate Voice button to begin.");
+            }, 1000);
+        });
+        
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                
+                if (targetElement) {
+                    targetElement.scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                    
+                    // Update focus for keyboard users
+                    targetElement.setAttribute('tabindex', '-1');
+                    targetElement.focus();
+                    
+                    // Announce navigation to screen readers
+                    const liveRegion = document.getElementById('aria-live-region');
+                    liveRegion.textContent = 'Navigated to ' + targetElement.querySelector('h2, h3')?.textContent || 'section';
+                }
+                
+                // Close mobile menu if open
+                const mobileMenu = document.getElementById('mobile-menu');
+                if (!mobileMenu.classList.contains('hidden')) {
+                    mobileMenu.classList.add('hidden');
+                    document.getElementById('mobile-menu-button').setAttribute('aria-expanded', 'false');
+                }
             });
-    
-            // Dönüştür butonu
-            convertBtn.addEventListener('click', async () => {
-                if (!pdfFileInput.files.length) return;
-    
-                const file = pdfFileInput.files[0];
-                const reader = new FileReader();
-    
-                reader.onload = async (e) => {
-                    // NOT: Gerçekte PDF'den metin çıkarmak için backend gerekir (Örn: Python + PyPDF2).
-                    // Bu örnekte demo amaçlı sabit bir metin kullanıyoruz.
-                    const demoText = "Bu bir demo metindir. Gerçek uygulamada PDF'in içeriği okunacaktır.";
-    
-                    // Metni sese dönüştür (Tarayıcı TTS API'si)
-                    if ('speechSynthesis' in window) {
-                        playerSection.classList.remove('hidden');
-                        
-                        // Tarayıcı TTS ile okuma
-                        const utterance = new SpeechSynthesisUtterance(demoText);
-                        utterance.lang = 'tr-TR'; // Türkçe için
-                        
-                        // Buton eventleri
-                        playBtn.addEventListener('click', () => {
-                            window.speechSynthesis.speak(utterance);
-                        });
-                        
-                        pauseBtn.addEventListener('click', () => {
-                            window.speechSynthesis.pause();
-                        });
-                        
-                        stopBtn.addEventListener('click', () => {
-                            window.speechSynthesis.cancel();
-                        });
-                    } else {
-                        alert("Tarayıcınız metin okuma desteği sağlamıyor.");
-                    }
-                };
-    
-                reader.readAsArrayBuffer(file);
+        });
+        
+        // Make all focusable elements keyboard accessible
+        document.querySelectorAll('.focusable').forEach(element => {
+            element.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.click();
+                }
             });
         });
     </script>
